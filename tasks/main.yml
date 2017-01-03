@@ -1,0 +1,25 @@
+---
+# tasks file for anisble-role-vault
+
+# Variable setup.
+- include: variables.yml
+
+# Prerequisites Setup
+- include: pre_install.yml
+
+# Setup/install tasks.
+- include: install.yml
+  
+- include: flush.yml
+
+- include: initialize.yml
+
+# Typically configuration that should happen before service start
+- include: pre_configure.yml  
+ 
+#
+## FLush any handlers
+#- include: flush.yml
+#
+## Cleanup
+#- include: cleanup.yml

@@ -1,0 +1,27 @@
+---
+- fail:
+    msg: "Non RedHat installations not supported yet" 
+  when: ansible_os_family != 'RedHat'
+
+  
+- group: 
+    name: "{{ vault_group }}"
+    state: present
+- user: 
+    name: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    home: "{{ vault_root }}"
+    createhome: yes
+    generate_ssh_key: yes
+    password: vault
+    
+- name: ensure dependencies are installed.
+  package:
+    name: 
+      - libcap
+      - grep
+      - gawk
+    state: installed
+
+
+ 

@@ -1,0 +1,70 @@
+---
+
+- name: create directory structure
+  file: path={{vault_root}}{{ item }}  state=directory  owner={{vault_user}} group={{vault_group}} mode=0700
+  with_items:
+  - /etc/
+  - /data/
+  - /etc/logrotate.d                                                  
+  - /var/log
+  - /var/run
+  - /var/lock
+  - /etc/sysconfig
+  - /tmp
+  - /scripts
+  - /bin
+  - /secrets
+  register: vault_folders
+
+- name: download vault binary.
+  unarchive:
+    src: "{{ vault_tarball_url }}"
+    remote_src: yes
+    dest: "{{ vault_root }}/bin"
+    creates: "{{ vault_root }}/bin/vault"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_user }}"
+    mode: 0755
+  register: vault_binary  
+
+- name: enable mlock syscall
+  command:  "setcap  cap_ipc_lock=+ep {{ vault_root }}/bin/vault"
+  changed_when: False
+   
+- name: write vault config
+  template:
+    src: vault.hcl
+    dest: "{{ vault_root }}/etc/vault.hcl"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+  register: vault_config  
+
+- name: install service script
+  template:
+    src: service.vault
+    dest: "/etc/init.d/vault"
+    owner: root
+    group: root
+    mode: 0755    
+  register: vault_initscript    
+
+- name: vault global config
+  template:
+    src: sysconfig.vault
+    dest: "{{ vault_root }}/etc/sysconfig/vault"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: 0600    
+  register: vault_global_config 
+  
+- name: Immediately restart vault on changes.
+  service: name=vault state=restarted
+  when: (vault_folders is defined and vault_folders.changed) or
+        (vault_binary is defined and vault_binary.changed) or
+        (vault_config is defined and vault_config.changed) or 
+        (vault_initscript is defined and vault_initscript.changed) or
+        (vault_global_config is defined and vault_global_config.changed)
+        
+- name: Ensure Vault is started and runs on startup.
+  service: name=vault state=started enabled=yes    
+        

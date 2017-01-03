@@ -1,0 +1,49 @@
+---
+- name: test vault initialization
+  command: > 
+              {{ vault_root }}/bin/vault init  
+              -address=http://{{ vault_configuration.listener 
+                                  | map(attribute='tcp') 
+                                  | map(attribute='address') 
+                                  | first }} 
+              -check
+  register: vault_init_status
+  ignore_errors: yes
+  changed_when: false
+  failed_when: false
+  
+
+    
+- name: initialize vault
+  shell: > 
+              {{ vault_root }}/bin/vault init  
+              -address=http://{{ vault_configuration.listener 
+                                  | map(attribute='tcp') 
+                                  | map(attribute='address') 
+                                  | first }} > {{ vault_root }}/secrets/initialization_{{ current_run }}
+  become: yes
+  become_user: "{{ vault_user }}"
+  when: vault_init_status.rc == 2
+  register: vault_initialization 
+  
+- name: vault initialization error state
+  fail: msg="Irrecoverable Vault initialization error"
+  when: vault_init_status.rc == 1  
+      
+- name: manage initial secrets
+  shell: "{{ item }}"
+  become: yes
+  become_user: "{{ vault_user }}"
+  when: vault_initialization is defined and vault_initialization.changed  
+  notify: restart vault  
+  no_log: True
+  with_items: 
+  - > 
+            cat {{ vault_root }}/secrets/initialization_{{ current_run }} 
+            | grep 'Unseal Key'
+            | awk -F ': ' '{print $2}' > {{ vault_root }}/secrets/unseal_keys       
+  - > 
+            cat {{ vault_root }}/secrets/initialization_{{ current_run }} 
+            | grep 'Initial Root Token'
+            | awk -F ': ' '{print $2}' > {{ vault_root }}/secrets/root_token       
+   

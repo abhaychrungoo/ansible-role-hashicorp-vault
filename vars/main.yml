@@ -1,0 +1,3 @@
+---
+# vars file for anisble-role-vault
+current_run: "{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}"

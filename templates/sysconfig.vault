@@ -1,0 +1,2 @@
+KEYS=`cat {{vault_root}}/secrets/unseal_keys`
+VAULT_ADDR=http://{{ vault_configuration.listener | map(attribute='tcp') | map(attribute='address') | first }}

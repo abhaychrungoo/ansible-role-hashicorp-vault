@@ -1,0 +1,161 @@
+#!/bin/sh
+#
+# vault - this script manages the vault server
+#
+# chkconfig:   345 96 04
+# processname: vault
+
+### BEGIN INIT INFO
+# Provides:       vault
+# Required-Start: $local_fs $network
+# Required-Stop:  $local_fs $network
+# Default-Start: 3 4 5
+# Default-Stop:  0 1 2 6
+# Short-Description: Manage the vault server
+### END INIT INFO
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+exec="{{ vault_root }}/bin/vault"
+prog=${exec##*/}
+
+user={{ vault_user }}
+group={{ vault_group }}
+
+lockfile="{{ vault_root }}/var/lock/$prog"
+pidfile="{{ vault_root }}/var/run/${prog}.pid"
+logfile="{{ vault_root }}/var/log/${prog}.log"
+sysconfig="{{ vault_root }}/etc/sysconfig/$prog"
+confdir="{{ vault_root }}/etc"
+
+[ -f $sysconfig ] && . $sysconfig
+
+start() {
+    [ -x $exec ] || exit 5
+    [ -d $confdir ] || exit 6
+
+    echo -n $"Starting $prog: "
+    touch $logfile $pidfile
+    chown $user:$group  $logfile
+
+    
+    daemon --user ${user}  --pidfile $pidfile $exec server $OPTIONS -config=$confdir &>> $logfile & 
+
+    RETVAL=$?
+    sleep 5
+    if [ $RETVAL -eq 0 ]; then
+
+		pid=`ps hww -u ${user} -o pid:1,cmd:1 | \
+		 while read pid cmd ;do (echo $cmd | \
+		 grep ^${exec} >/dev/null) && echo $pid ; done | \
+		 sort |tail -1`
+
+	
+ #       /bin/ps hww -u "${user}" -o sess,ppid,pid,cmd | \
+ #       while read sess ppid pid cmd; do
+ #       [ "$ppid" = 1 ] || continue
+ #       echo "$cmd" | grep "${exec} server" > /dev/null
+ #       [ $? = 0 ] || continue
+ #       # found a PID
+ #       echo $pid > ${pidfile}
+ #       echo $pid > /tmp/vault_pid
+ #       done
+       
+        touch $lockfile
+        chown $user:$group  $lockfile
+        echo $pid > ${pidfile}
+        chown $user:$group  $pidfile
+             
+        success
+        unseal
+    else
+        failure    
+    fi
+    echo
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc -p $pidfile $exec &>> $logfile
+    RETVAL=$?
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    echo
+    return $RETVAL
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    echo -n $"Reloading $prog: "
+    killproc -p $pidfile $exec -HUP
+    echo
+}
+
+force_reload() {
+    restart
+}
+
+rh_status() {
+    status -p $pidfile $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+unseal() {
+    while :
+    do
+        ss -pl | fgrep "((\"$prog\"," > /dev/null
+        [ $? -eq 0 ] && break
+        sleep 0.1
+    done
+    for key in $KEYS; do $exec unseal $CERT -address=${VAULT_ADDR} $key >> $logfile ; done
+}
+
+seal() {
+    $exec seal $CERT -address=${VAULT_ADDR} >> $logfile
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 7
+        restart
+        ;;
+    unseal)
+        $1
+        ;;
+    seal)
+        $1
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|unseal|seal}"
+        exit 2
+esac
+
+exit $?

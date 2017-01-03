@@ -1,0 +1,19 @@
+---
+# defaults file for anisble-role-vault
+
+vault_user: vault
+vault_group: vault
+vault_root: /apps/vault
+vault_tarball_url: https://releases.hashicorp.com/vault/0.6.4/vault_0.6.4_linux_amd64.zip
+
+vault_configuration:
+  disable_mlock: false
+  cluster_name: vault-dev
+  listener: 
+    - tcp:
+        address: "localhost:8200"
+        tls_disable: 1
+  backend:
+    - file:
+        path: "{{ vault_root }}/data"    
+  

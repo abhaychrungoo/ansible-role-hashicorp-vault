@@ -1,0 +1,5 @@
+---
+# handlers file for anisble-role-vault
+- name: restart vault
+  service: name=vault state=restarted
+

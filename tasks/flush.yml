@@ -1,0 +1,7 @@
+---
+- name: Trigger handlers immediately 
+  meta: flush_handlers
+
+- name: Allow handlers to trigger
+  command: sleep 2
+  changed_when: false
