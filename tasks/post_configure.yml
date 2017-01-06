@@ -1,0 +1,91 @@
+---
+# Global Policies, mounts, backends
+
+- name: create local config stores
+  file: 
+    path: "{{vault_root}}/etc/vault{{ item }}"  
+    state: directory  
+    owner: "{{vault_user}}" 
+    group: "{{vault_group}}"
+    mode: 0700
+  with_items:
+  - /sys/policy
+  - /sys/auth
+  - /sys/mounts
+#################################
+- name: store policies locally
+  template:        
+    src: namedpolicy
+    dest: "{{vault_root}}/etc/vault/sys/policy/{{ item.key }}"
+    owner: "{{vault_user}}" 
+    group: "{{vault_group}}"
+  vars: 
+    policydoc: "{{ item.value | to_json }}"  
+  with_dict: "{{ vault_policies }}"  
+
+- name: invoke policy api
+  uri:
+    url: "{{ VAULT_ADDR }}/v1/sys/policy/{{ item.key }}"
+    body: " {{ lookup('file', policyfile) }}"
+    body_format: json
+    method: POST
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ VAULT_TOKEN }}"
+  vars:
+    policyfile: "{{vault_root}}/etc/vault/sys/policy/{{ item.key }}"  
+  with_dict: "{{ vault_policies  }}" 
+  register: vault_policy_config  
+###################################
+- name: store auth config locally
+  template:        
+    src: authconfig
+    dest: "{{vault_root}}/etc/vault/sys/auth/{{ item.key }}"
+    owner: "{{vault_user}}" 
+    group: "{{vault_group}}"
+  vars: 
+    auth: "{{ item.value | to_json }}"  
+  with_dict: "{{ vault_auth_backends }}"
+
+- name: ensure auth backends
+  uri:
+    url: "{{ VAULT_ADDR }}/v1/sys/auth/{{ item.key }}"
+    body: " {{ lookup('file', authfile) }}"
+    body_format: json
+    method: PUT
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ VAULT_TOKEN }}"
+  vars:
+    authfile: "{{vault_root}}/etc/vault/sys/auth/{{ item.key }}"  
+  failed_when: ( vault_auth_config.status != 204 ) and
+               ('path is already in use' not in vault_auth_config.content ) 
+  with_dict: "{{ vault_auth_backends  }}" 
+  register: vault_auth_config   
+####################################
+- name: store secrets config locally
+  template:        
+    src: secretconfig
+    dest: "{{vault_root}}/etc/vault/sys/mounts/{{ item.key }}"
+    owner: "{{vault_user}}" 
+    group: "{{vault_group}}"
+  vars: 
+    backend: "{{ item.value | to_json }}"  
+  with_dict: "{{ vault_secret_backends }}"
+
+- name: ensure secret backends
+  uri:
+    url: "{{ VAULT_ADDR }}/v1/sys/mounts/{{ item.key }}"
+    body: " {{ lookup('file', mountfile) }}"
+    body_format: json
+    method: PUT
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ VAULT_TOKEN }}"
+  vars:
+    mountfile: "{{vault_root}}/etc/vault/sys/mounts/{{ item.key }}"  
+  failed_when: ( vault_secret_config.status != 204 ) and
+               ('existing mount at' not in vault_secret_config.content ) 
+  with_dict: "{{ vault_secret_backends  }}" 
+  register: vault_secret_config   
+

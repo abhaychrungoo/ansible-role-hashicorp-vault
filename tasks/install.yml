@@ -4,6 +4,7 @@
   file: path={{vault_root}}{{ item }}  state=directory  owner={{vault_user}} group={{vault_group}} mode=0700
   with_items:
   - /etc/
+  - /etc/vault
   - /data/
   - /etc/logrotate.d                                                  
   - /var/log

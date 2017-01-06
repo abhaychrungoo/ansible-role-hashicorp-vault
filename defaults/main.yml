@@ -16,4 +16,10 @@ vault_configuration:
   backend:
     - file:
         path: "{{ vault_root }}/data"    
-  
+
+vault_policies: {}
+
+vault_auth_backends: {}
+
+vault_secret_backends: {}
+

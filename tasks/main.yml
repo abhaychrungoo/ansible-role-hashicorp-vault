@@ -9,17 +9,24 @@
 
 # Setup/install tasks.
 - include: install.yml
-  
-- include: flush.yml
-
-- include: initialize.yml
 
 # Typically configuration that should happen before service start
 - include: pre_configure.yml  
+
+# Start/ restrat the service as needed  
+- include: flush.yml
+
+# Special post_configuration. Only needed once per data backend
+- include: initialize.yml
+
+# Read in any secrets that are needed for configuration
+- include_vars: tokens.yml
+
+# FLush any handlers
+- include: flush.yml
+
+# Typically configuration that should happen before service start
+- include: post_configure.yml  
  
-#
-## FLush any handlers
-#- include: flush.yml
-#
 ## Cleanup
 #- include: cleanup.yml

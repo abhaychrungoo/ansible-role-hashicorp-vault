@@ -29,6 +29,12 @@
 - name: vault initialization error state
   fail: msg="Irrecoverable Vault initialization error"
   when: vault_init_status.rc == 1  
+
+- name: secret permissions
+  file: path="{{ item }}" mode=0600
+  with_items:
+    - "{{ vault_root }}/secrets/root_token"
+    - "{{ vault_root }}/secrets/unseal_keys"
       
 - name: manage initial secrets
   shell: "{{ item }}"
@@ -38,12 +44,12 @@
   notify: restart vault  
   no_log: True
   with_items: 
-  - > 
+  - >       
             cat {{ vault_root }}/secrets/initialization_{{ current_run }} 
             | grep 'Unseal Key'
             | awk -F ': ' '{print $2}' > {{ vault_root }}/secrets/unseal_keys       
-  - > 
+  - >       
             cat {{ vault_root }}/secrets/initialization_{{ current_run }} 
             | grep 'Initial Root Token'
             | awk -F ': ' '{print $2}' > {{ vault_root }}/secrets/root_token       
-   
+    
