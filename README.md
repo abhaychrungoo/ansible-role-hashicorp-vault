@@ -50,6 +50,11 @@ vault_secret_backends:
       default_lease_ttl: 0
       max_lease_ttl: 0
 
+vault_custom_rest_config:
+  'auth/userpass/users/root':
+    username: root
+    password: root
+    policies: "superadmin, default"
 ```
 
 Dependencies

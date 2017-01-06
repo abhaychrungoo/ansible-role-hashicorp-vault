@@ -88,4 +88,20 @@
                ('existing mount at' not in vault_secret_config.content ) 
   with_dict: "{{ vault_secret_backends  }}" 
   register: vault_secret_config   
-
+########### Do NOT STORE ############
+- name: custom rest config
+  uri:
+    url: "{{ VAULT_ADDR }}/v1/{{ item.key }}"
+    body: " {{ requestbody }}"
+    body_format: json
+    method: POST
+    status_code: 204
+    headers:
+      X-Vault-Token: "{{ VAULT_TOKEN }}"
+  vars:
+    requestbody: "{{ item.value | to_json }}"  
+#  failed_when: ( vault_secret_config.status != 204 ) and
+#               ('existing mount at' not in vault_secret_config.content ) 
+  with_dict: "{{ vault_custom_rest_config  }}"
+  no_log: True 
+  register: vault_rest_config 
