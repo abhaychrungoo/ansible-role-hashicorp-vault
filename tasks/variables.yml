@@ -1,2 +1,5 @@
 ---
 # check for OS/Architecture and set appropriate variables. TODO
+- slurp:
+    src: "{{ vault_root }}/secrets/root_token"
+  register: register_token

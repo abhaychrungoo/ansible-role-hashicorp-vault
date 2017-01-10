@@ -1,4 +1,3 @@
 ---
-ROOT_TOKEN_FILE: "{{ vault_root }}/secrets/root_token"
 VAULT_ADDR: "http://{{ vault_configuration.listener | map(attribute='tcp') | map(attribute='address') | first }}"
-VAULT_TOKEN: "{{ lookup('file', ROOT_TOKEN_FILE ) }}"
+VAULT_TOKEN: "{{ register_token['content'] | b64decode | trim }}"
