@@ -1,3 +1,3 @@
 ---
 VAULT_ADDR: "http://{{ vault_configuration.listener | map(attribute='tcp') | map(attribute='address') | first }}"
-VAULT_TOKEN: "{{ register_token['content'] | b64decode | trim }}"
+VAULT_TOKEN: "{{ root_vault_token['content'] | b64decode | trim }}"

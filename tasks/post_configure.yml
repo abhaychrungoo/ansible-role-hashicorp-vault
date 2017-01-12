@@ -26,7 +26,7 @@
 - name: invoke policy api
   uri:
     url: "{{ VAULT_ADDR }}/v1/sys/policy/{{ item.key }}"
-    body: "{{ lookup('template', 'namedpolicy')|replace('\\\\', '') }}"
+    body: "{{ lookup('template', 'namedpolicy', convert_data=false) }}"
     body_format: json
     method: POST
     status_code: 204
@@ -50,7 +50,7 @@
 - name: ensure auth backends
   uri:
     url: "{{ VAULT_ADDR }}/v1/sys/auth/{{ item.key }}"
-    body: "{{ lookup('template', 'authconfig')|replace('\\\\', '') }}"
+    body: "{{ lookup('template', 'authconfig', convert_data=False) }}"
     body_format: json
     method: PUT
     status_code: 204
@@ -62,6 +62,7 @@
                ('path is already in use' not in vault_auth_config.content )
   with_dict: "{{ vault_auth_backends  }}"
   register: vault_auth_config
+
 ####################################
 - name: store secrets config locally
   template:
@@ -76,7 +77,7 @@
 - name: ensure secret backends
   uri:
     url: "{{ VAULT_ADDR }}/v1/sys/mounts/{{ item.key }}"
-    body: "{{ lookup('template', 'secretconfig')|replace('\\\\', '') }}"
+    body: "{{ lookup('template', 'secretconfig', convert_data=False) }}"
     body_format: json
     method: PUT
     status_code: 204
@@ -88,6 +89,7 @@
                ('existing mount at' not in vault_secret_config.content )
   with_dict: "{{ vault_secret_backends  }}"
   register: vault_secret_config
+
 ########### Do NOT STORE ############
 - name: custom rest config
   uri:

@@ -1,5 +1,11 @@
 ---
 # check for OS/Architecture and set appropriate variables. TODO
-- slurp:
+- name: read necessary tokens
+  slurp:
     src: "{{ vault_root }}/secrets/root_token"
-  register: register_token
+  register: root_vault_token
+  no_log: True
+
+  # Read in any secrets that are needed for configuration
+- include_vars: tokens.yml
+  

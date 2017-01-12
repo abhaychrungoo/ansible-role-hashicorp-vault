@@ -22,9 +22,6 @@
 #Token variables include
 - include: variables.yml
 
-# Read in any secrets that are needed for configuration
-- include_vars: tokens.yml
-
 # FLush any handlers
 - include: flush.yml
 
