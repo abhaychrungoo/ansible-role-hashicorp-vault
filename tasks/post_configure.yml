@@ -13,16 +13,6 @@
   - /sys/auth
   - /sys/mounts
 #################################
-- name: store policies locally
-  template:
-    src: namedpolicy
-    dest: "{{vault_root}}/etc/vault/sys/policy/{{ item.key }}"
-    owner: "{{vault_user}}"
-    group: "{{vault_group}}"
-  vars:
-    policydoc: "{{ item.value | to_json }}"
-  with_dict: "{{ vault_policies }}"
-
 - name: invoke policy api
   uri:
     url: "{{ VAULT_ADDR }}/v1/sys/policy/{{ item.key }}"
@@ -36,17 +26,30 @@
     policydoc: " {{ item.value | to_json }}"
   with_dict: "{{ vault_policies  }}"
   register: vault_policy_config
-###################################
-- name: store auth config locally
+  
+- name: create local policy config store
+  file: 
+    path: "{{ filepath | dirname }}"
+    state: directory
+    owner: "{{vault_user}}"
+    group: "{{vault_group}}"
+    mode: 0700
+  vars:
+    filepath: "{{vault_root}}/etc/vault/sys/policy/{{ item.key }}.json"
+  with_dict: "{{ vault_policies }}"  
+      
+- name: store policies locally
   template:
-    src: authconfig
-    dest: "{{vault_root}}/etc/vault/sys/auth/{{ item.key }}"
+    src: namedpolicy
+    dest: "{{vault_root}}/etc/vault/sys/policy/{{ item.key }}.json"
     owner: "{{vault_user}}"
     group: "{{vault_group}}"
   vars:
-    auth: "{{ item.value | to_json }}"
-  with_dict: "{{ vault_auth_backends }}"
+    policydoc: "{{ item.value | to_json }}"
+  with_dict: "{{ vault_policies }}"
 
+
+###################################
 - name: ensure auth backends
   uri:
     url: "{{ VAULT_ADDR }}/v1/sys/auth/{{ item.key }}"
@@ -63,17 +66,29 @@
   with_dict: "{{ vault_auth_backends  }}"
   register: vault_auth_config
 
-####################################
-- name: store secrets config locally
+- name: create local auth config store
+  file: 
+    path: "{{ filepath | dirname }}"
+    state: directory
+    owner: "{{vault_user}}"
+    group: "{{vault_group}}"
+    mode: 0700
+  vars:
+    filepath: "{{vault_root}}/etc/vault/sys/auth/{{ item.key }}.json"
+  with_dict: "{{ vault_auth_backends }}"  
+
+- name: store auth config locally
   template:
-    src: secretconfig
-    dest: "{{vault_root}}/etc/vault/sys/mounts/{{ item.key }}"
+    src: authconfig
+    dest: "{{vault_root}}/etc/vault/sys/auth/{{ item.key }}.json"
     owner: "{{vault_user}}"
     group: "{{vault_group}}"
   vars:
-    backend: "{{ item.value | to_json }}"
-  with_dict: "{{ vault_secret_backends }}"
+    auth: "{{ item.value | to_json }}"
+  with_dict: "{{ vault_auth_backends }}"
 
+
+####################################
 - name: ensure secret backends
   uri:
     url: "{{ VAULT_ADDR }}/v1/sys/mounts/{{ item.key }}"
@@ -89,6 +104,29 @@
                ('existing mount at' not in vault_secret_config.content )
   with_dict: "{{ vault_secret_backends  }}"
   register: vault_secret_config
+
+- name: create local secret backend config store
+  file: 
+    path: "{{ filepath | dirname }}"
+    state: directory
+    owner: "{{vault_user}}"
+    group: "{{vault_group}}"
+    mode: 0700
+  vars:
+    filepath: "{{vault_root}}/etc/vault/sys/mounts/{{ item.key }}.json"
+  with_dict: "{{ vault_secret_backends }}"  
+
+
+- name: store secrets config locally
+  template:
+    src: secretconfig
+    dest: "{{vault_root}}/etc/vault/sys/mounts/{{ item.key }}.json"
+    owner: "{{vault_user}}"
+    group: "{{vault_group}}"
+  vars:
+    backend: "{{ item.value | to_json }}"
+  with_dict: "{{ vault_secret_backends }}"
+
 
 ########### Do NOT STORE ############
 - name: custom rest config
